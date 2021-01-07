@@ -148,10 +148,9 @@ func (t *App) initQuerier() (services.Service, error) {
 
 	tracesHandler := middleware.Merge(
 		t.httpAuthMiddleware,
-	).Wrap(http.HandlerFunc(t.querier.TraceByIDHandler))
+	).Wrap(t.querier.NewInstrumentedHandler(prometheus.DefaultRegisterer))
 
-	t.server.HTTP.Handle("/querier/api/traces/{traceID}", tracesHandler)
-	return t.querier, t.querier.CreateAndRegisterWorker(t.server.HTTP)
+	return t.querier, t.querier.CreateAndRegisterWorker(tracesHandler)
 }
 
 func (t *App) initQueryFrontend() (services.Service, error) {
