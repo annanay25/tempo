@@ -15,6 +15,7 @@
 package zipkinreceiver
 
 import (
+	"fmt"
 	"compress/gzip"
 	"compress/zlib"
 	"context"
@@ -40,6 +41,7 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumerdata"
 	"go.opentelemetry.io/collector/obsreport"
 	"go.opentelemetry.io/collector/translator/trace/zipkin"
+	"github.com/weaveworks/common/user"
 )
 
 const (
@@ -246,6 +248,14 @@ func (zr *ZipkinReceiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if c, ok := client.FromHTTP(r); ok {
 		ctx = client.NewContext(ctx, c)
+	}
+
+	orgID, _, err2 := user.ExtractOrgIDFromHTTPRequest(r)
+	ctx = user.InjectOrgID(ctx, orgID)
+	if err2 != nil {
+		fmt.Println("NO USER ID AT ZIPKIN TRACE RECEIVER")
+	} else {
+		fmt.Println("USER ID FOUND AT ZIPKIN TRACE RECEIVER")
 	}
 
 	// Now deserialize and process the spans.
