@@ -34,8 +34,8 @@ func New(cfg *Config) (backend.Reader, backend.Writer, backend.Compactor, error)
 	ctx := context.Background()
 
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport.MaxIdleConns = 200
-	customTransport.MaxIdleConnsPerHost = 200
+	customTransport.MaxIdleConns = 400
+	customTransport.MaxIdleConnsPerHost = 400
 
 	transportOptions := []option.ClientOption{}
 	if cfg.Insecure {
