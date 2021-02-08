@@ -141,6 +141,10 @@ func (rw *readerWriter) Append(ctx context.Context, name string, blockID uuid.UU
 
 // CloseAppend implements backend.Writer
 func (rw *readerWriter) CloseAppend(_ context.Context, tracker backend.AppendTracker) error {
+	if tracker == nil {
+		return nil
+	}
+
 	w := tracker.(*storage.Writer)
 	return w.Close()
 }
