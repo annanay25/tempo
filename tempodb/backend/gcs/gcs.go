@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/mwitkow/go-conntrack"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -34,8 +36,13 @@ func New(cfg *Config) (backend.Reader, backend.Writer, backend.Compactor, error)
 	ctx := context.Background()
 
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport.MaxIdleConns = 400
-	customTransport.MaxIdleConnsPerHost = 400
+	customTransport.DialContext = conntrack.NewDialContextFunc(
+		conntrack.DialWithTracing(),
+		conntrack.DialWithDialer(&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}),
+	)
 
 	transportOptions := []option.ClientOption{}
 	if cfg.Insecure {
