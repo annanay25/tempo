@@ -584,8 +584,10 @@ github.com/jaegertracing/jaeger/cmd/collector/app/sampling/strategystore
 github.com/jaegertracing/jaeger/cmd/collector/app/sanitizer/zipkin
 github.com/jaegertracing/jaeger/cmd/flags
 github.com/jaegertracing/jaeger/model
+github.com/jaegertracing/jaeger/model/converter/json
 github.com/jaegertracing/jaeger/model/converter/thrift/jaeger
 github.com/jaegertracing/jaeger/model/converter/thrift/zipkin
+github.com/jaegertracing/jaeger/model/json
 github.com/jaegertracing/jaeger/pkg/clientcfg/clientcfghttp
 github.com/jaegertracing/jaeger/pkg/config/tlscfg
 github.com/jaegertracing/jaeger/pkg/discovery

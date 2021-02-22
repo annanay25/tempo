@@ -5,10 +5,16 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	jaeger "github.com/jaegertracing/jaeger/model"
+	jaeger_json "github.com/jaegertracing/jaeger/model/converter/json"
+	ot_pdata "go.opentelemetry.io/collector/consumer/pdata"
+	ot_jaeger "go.opentelemetry.io/collector/translator/trace/jaeger"
 
 	"github.com/go-kit/kit/log"
 	"github.com/golang/protobuf/jsonpb"
@@ -60,6 +66,8 @@ func (s shardQuery) Do(r *http.Request) (*http.Response, error) {
 	marshallingFormat := util.JSONTypeHeaderValue
 	if r.Header.Get(util.AcceptHeaderKey) == util.ProtobufTypeHeaderValue {
 		marshallingFormat = util.ProtobufTypeHeaderValue
+	} else if r.Header.Get(util.AcceptHeaderKey) == util.JaegerJSONTypeHeaderValue {
+		marshallingFormat = util.JaegerJSONTypeHeaderValue
 	}
 
 	reqs := make([]*http.Request, s.queryShards)
@@ -211,6 +219,43 @@ func mergeResponses(ctx context.Context, marshallingFormat string, rrs []Request
 				return nil, err
 			}
 			combinedTrace = jsonTrace.Bytes()
+		} else if marshallingFormat == util.JaegerJSONTypeHeaderValue {
+			// if request is for application/json, unmarshal into proto object and re-marshal into json bytes
+			traceObject := &tempopb.Trace{}
+			err := proto.Unmarshal(combinedTrace, traceObject)
+			if err != nil {
+				return nil, err
+			}
+
+			otTrace := ot_pdata.TracesFromOtlp(traceObject.Batches)
+			jaegerBatches, err := ot_jaeger.InternalTracesToJaegerProto(otTrace)
+			if err != nil {
+				return nil, err
+			}
+
+			jaegerTrace := &jaeger.Trace{
+				Spans:      []*jaeger.Span{},
+				ProcessMap: []jaeger.Trace_ProcessMapping{},
+			}
+
+			// otel proto conversion doesn't set jaeger processes
+			for _, batch := range jaegerBatches {
+				for _, s := range batch.Spans {
+					s.Process = batch.Process
+				}
+
+				jaegerTrace.Spans = append(jaegerTrace.Spans, batch.Spans...)
+				jaegerTrace.ProcessMap = append(jaegerTrace.ProcessMap, jaeger.Trace_ProcessMapping{
+					Process:   *batch.Process,
+					ProcessID: batch.Process.ServiceName,
+				})
+			}
+
+			jsonTrace := jaeger_json.FromDomain(jaegerTrace)
+			combinedTrace, err = json.Marshal(jsonTrace)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		span.SetTag("response marshalling format", marshallingFormat)
