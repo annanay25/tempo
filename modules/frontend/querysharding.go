@@ -5,14 +5,12 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 
 	jaeger "github.com/jaegertracing/jaeger/model"
-	jaeger_json "github.com/jaegertracing/jaeger/model/converter/json"
 	ot_pdata "go.opentelemetry.io/collector/consumer/pdata"
 	ot_jaeger "go.opentelemetry.io/collector/translator/trace/jaeger"
 
@@ -66,8 +64,8 @@ func (s shardQuery) Do(r *http.Request) (*http.Response, error) {
 	marshallingFormat := util.JSONTypeHeaderValue
 	if r.Header.Get(util.AcceptHeaderKey) == util.ProtobufTypeHeaderValue {
 		marshallingFormat = util.ProtobufTypeHeaderValue
-	} else if r.Header.Get(util.AcceptHeaderKey) == util.JaegerJSONTypeHeaderValue {
-		marshallingFormat = util.JaegerJSONTypeHeaderValue
+	} else if r.Header.Get(util.AcceptHeaderKey) == util.JaegerProtoTypeHeaderValue {
+		marshallingFormat = util.JaegerProtoTypeHeaderValue
 	}
 
 	reqs := make([]*http.Request, s.queryShards)
@@ -219,7 +217,7 @@ func mergeResponses(ctx context.Context, marshallingFormat string, rrs []Request
 				return nil, err
 			}
 			combinedTrace = jsonTrace.Bytes()
-		} else if marshallingFormat == util.JaegerJSONTypeHeaderValue {
+		} else if marshallingFormat == util.JaegerProtoTypeHeaderValue {
 			// if request is for application/json, unmarshal into proto object and re-marshal into json bytes
 			traceObject := &tempopb.Trace{}
 			err := proto.Unmarshal(combinedTrace, traceObject)
@@ -251,8 +249,7 @@ func mergeResponses(ctx context.Context, marshallingFormat string, rrs []Request
 				})
 			}
 
-			jsonTrace := jaeger_json.FromDomain(jaegerTrace)
-			combinedTrace, err = json.Marshal(jsonTrace)
+			combinedTrace, err = proto.Marshal(jaegerTrace)
 			if err != nil {
 				return nil, err
 			}

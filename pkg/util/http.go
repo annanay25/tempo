@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	TraceIDVar                = "traceID"
-	AcceptHeaderKey           = "Accept"
-	ProtobufTypeHeaderValue   = "application/protobuf"
-	JSONTypeHeaderValue       = "application/json"
-	JaegerJSONTypeHeaderValue = "application/jaeger-json"
+	TraceIDVar                 = "traceID"
+	AcceptHeaderKey            = "Accept"
+	ProtobufTypeHeaderValue    = "application/protobuf"
+	JSONTypeHeaderValue        = "application/json"
+	JaegerProtoTypeHeaderValue = "application/jaeger-proto"
 )
 
 func ParseTraceID(r *http.Request) ([]byte, error) {
